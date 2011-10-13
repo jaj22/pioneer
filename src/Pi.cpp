@@ -1401,7 +1401,7 @@ void Pi::MainLoop()
 		} else {
 			// this is something we need not do every turn...
 			if (!config.Int("DisableSound")) AmbientSounds::Update();
-			StarSystem::ShrinkCache();
+//			StarSystem::ShrinkCache();
 		}
 		cpan->Update();
 		currentView->Update();

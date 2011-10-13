@@ -860,6 +860,7 @@ void DoHyperspaceTo(const SystemPath *dest)
 	
 	Pi::sectorView->ResetHyperspaceTarget();
 	Pi::player->ClearFollowCloud();
+	StarSystem::ShrinkCache();
 }
 
 /* called at game start to load the system and put the player in a starport */
