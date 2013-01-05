@@ -1051,7 +1051,11 @@ bool AICmdFlyAround::TimeStepUpdate()
 	// termination condition for orbits
 	vector3d thrust = m_ship->GetThrusterState();
 	if (m_targmode >= 2 && thrust.LengthSqr() < 0.01) m_targmode++;
-	if (m_targmode == 4) { m_ship->SetThrusterState(vector3d(0.0)); return true; }
+	if (m_targmode == 4) {
+		m_ship->SetVelocity(tanvel);				// cheat
+		m_ship->SetThrusterState(vector3d(0.0));	// let gravity integrator take over
+		return true;
+	}
 	return false;
 }
 
