@@ -542,10 +542,18 @@ void Loader::ConvertAnimations(const aiScene* scene, const AnimList &animDefs, N
 			defStart /= 24.0;
 			defEnd /= 24.0;
 		}
-		Animation *animation = new Animation(
+
+		// Add channels to current animation if it's already present
+		// Necessary to make animations work in multiple LODs
+		// XXX ticksPerSecond may be different if meshes are in different formats 
+		// XXX should probably convert key times instead
+		Animation *animation = m_model->FindAnimation(def->name);
+		bool newAnim = !animation;
+		if (newAnim) animation = new Animation(
 			def->name, 0.0,
 			def->loop ? Animation::LOOP : Animation::ONCE,
 			ticksPerSecond);
+
 		for (unsigned int j=0; j<aianim->mNumChannels; j++) {
 			const aiNodeAnim *aichan = aianim->mChannels[j];
 			//do a preliminary check that at least two keys in one channel are within range
@@ -596,10 +604,12 @@ void Loader::ConvertAnimations(const aiScene* scene, const AnimList &animDefs, N
 		//set actual duration
 		animation->m_duration = end - start;
 
-		if (animation->m_channels.empty())
-			delete animation;
-		else
-			animations.push_back(animation);
+		if (newAnim) {
+			if (animation->m_channels.empty())
+				delete animation;
+			else
+				animations.push_back(animation);
+		}
 	}
 }
 
