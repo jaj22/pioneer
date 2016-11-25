@@ -886,7 +886,11 @@ void Ship::TimeAccelAdjust(const float timeStep)
 #endif
 	vector3d vdiff = double(timeStep) * GetLastForce() * (1.0 / GetMass());
 	if (!m_decelerating) vdiff = -2.0 * vdiff;
-	SetVelocity(GetVelocity() + vdiff);
+	vector3d newvel = GetVelocity() + vdiff;
+	// fudge for final-timestep cases where velocity is zero but GetLastForce is not
+	// doesn't work for cases where the target velocity isn't zero, but those are much less dangerous
+	if (newvel.LengthSqr() > GetVelocity().LengthSqr()) return;
+	SetVelocity(newvel);
 }
 
 void Ship::FireWeapon(int num)
