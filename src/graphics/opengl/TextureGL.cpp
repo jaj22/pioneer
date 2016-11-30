@@ -234,6 +234,9 @@ TextureGL::TextureGL(const TextureDescriptor &descriptor, const bool useCompress
 		glTexParameterf(m_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
 	}
 
+	if (descriptor.generateMipmaps && !IsCompressed(descriptor.format))
+		glGenerateMipmap(m_target);
+
 	CHECKERRORS();
 }
 
