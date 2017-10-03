@@ -39,6 +39,7 @@ void TextureBuilder::Init()
 #if SDL_BYTEORDER != SDL_LIL_ENDIAN
 #error "SDL surface pixel formats are endian-specific"
 #endif
+/*
 static SDL_PixelFormat pixelFormatRGBA = {
 	0,                                  // format#
 	0,                                  // palette
@@ -64,31 +65,30 @@ static SDL_PixelFormat pixelFormatRGB = {
 	0,                                  // colour key
 	0                                   // alpha
 };
+*/
 
-static inline bool GetTargetFormat(const SDL_PixelFormat *sourcePixelFormat, TextureFormat *targetTextureFormat, SDL_PixelFormat **targetPixelFormat, bool forceRGBA)
+static bool GetTargetFormat(const SDL_PixelFormat *sourcePixelFormat, TextureFormat *targetTextureFormat, Uint32 *targetPixelFormat, bool forceRGBA)
 {
-	if (!forceRGBA && sourcePixelFormat->BytesPerPixel == pixelFormatRGB.BytesPerPixel &&
-			sourcePixelFormat->Rmask == pixelFormatRGB.Rmask && sourcePixelFormat->Bmask == pixelFormatRGB.Bmask && sourcePixelFormat->Gmask == pixelFormatRGB.Gmask) {
+	if (!forceRGBA && sourcePixelFormat->format == SDL_PIXELFORMAT_RGB24) {
 		*targetTextureFormat = TEXTURE_RGB_888;
-		*targetPixelFormat = &pixelFormatRGB;
+		*targetPixelFormat = SDL_PIXELFORMAT_RGB24;			// 3 byte, order: R byte, G byte, B byte
 		return true;
 	}
 
-	if (sourcePixelFormat->BytesPerPixel == pixelFormatRGBA.BytesPerPixel &&
-			sourcePixelFormat->Rmask == pixelFormatRGBA.Rmask && sourcePixelFormat->Bmask == pixelFormatRGBA.Bmask && sourcePixelFormat->Gmask == pixelFormatRGBA.Gmask) {
+	if (sourcePixelFormat->format == SDL_PIXELFORMAT_ABGR8888) {
 		*targetTextureFormat = TEXTURE_RGBA_8888;
-		*targetPixelFormat = &pixelFormatRGBA;
+		*targetPixelFormat = SDL_PIXELFORMAT_ABGR8888;		// 32bit packed, alpha top of register
 		return true;
 	}
 
 	if (!forceRGBA && sourcePixelFormat->BytesPerPixel == 3) {
 		*targetTextureFormat = TEXTURE_RGB_888;
-		*targetPixelFormat = &pixelFormatRGB;
+		*targetPixelFormat = SDL_PIXELFORMAT_RGB24;
 		return false;
 	}
 
 	*targetTextureFormat = TEXTURE_RGBA_8888;
-	*targetPixelFormat = &pixelFormatRGBA;
+	*targetPixelFormat = SDL_PIXELFORMAT_ABGR8888;
 	return false;
 }
 
@@ -109,17 +109,16 @@ void TextureBuilder::PrepareSurface()
 	TextureFormat targetTextureFormat;
 	unsigned int virtualWidth, actualWidth, virtualHeight, actualHeight, numberOfMipMaps = 0, numberOfImages = 1;
 	if( m_surface ) {
-		SDL_PixelFormat *targetPixelFormat;
+		Uint32 targetPixelFormat;
 		bool needConvert = !GetTargetFormat(m_surface->format, &targetTextureFormat, &targetPixelFormat, m_forceRGBA);
-
 		if (needConvert) {
 			if(m_textureType == TEXTURE_2D) {
-				SDL_Surface *s = SDL_ConvertSurface(m_surface.Get(), targetPixelFormat, SDL_SWSURFACE);
+				SDL_Surface *s = SDL_ConvertSurfaceFormat(m_surface.Get(), targetPixelFormat, SDL_SWSURFACE);
 				m_surface = SDLSurfacePtr::WrapNew(s);
 			} else if(m_textureType == TEXTURE_CUBE_MAP) {
 				assert(m_cubemap.size() == 6);
 				for(unsigned int i = 0; i < 6; ++i) {
-					SDL_Surface *s = SDL_ConvertSurface(m_cubemap[i].Get(), targetPixelFormat, SDL_SWSURFACE);
+					SDL_Surface *s = SDL_ConvertSurfaceFormat(m_cubemap[i].Get(), targetPixelFormat, SDL_SWSURFACE);
 					m_cubemap[i] = SDLSurfacePtr::WrapNew(s);
 				}
 			} else {
@@ -133,12 +132,13 @@ void TextureBuilder::PrepareSurface()
 
 		if (m_potExtend) {
 			// extend to power-of-two if necessary
+			int bpp; Uint32 rmask, gmask, bmask, amask;
+			SDL_PixelFormatEnumToMasks(targetPixelFormat, &bpp, &rmask, &gmask, &bmask, &amask);
 			actualWidth = ceil_pow2(m_surface->w);
 			actualHeight = ceil_pow2(m_surface->h);
 			if (actualWidth != virtualWidth || actualHeight != virtualHeight) {
 				if(m_textureType == TEXTURE_2D) {
-					SDL_Surface *s = SDL_CreateRGBSurface(SDL_SWSURFACE, actualWidth, actualHeight, targetPixelFormat->BitsPerPixel,
-						targetPixelFormat->Rmask, targetPixelFormat->Gmask, targetPixelFormat->Bmask, targetPixelFormat->Amask);
+					SDL_Surface *s = SDL_CreateRGBSurface(SDL_SWSURFACE, actualWidth, actualHeight, bpp, rmask, gmask, bmask, amask);
 					SDL_SetSurfaceBlendMode(m_surface.Get(), SDL_BLENDMODE_NONE);
 					SDL_BlitSurface(m_surface.Get(), 0, s, 0);
 
@@ -146,8 +146,7 @@ void TextureBuilder::PrepareSurface()
 				} else if(m_textureType == TEXTURE_CUBE_MAP) {
 					assert(m_cubemap.size() == 6);
 					for(unsigned int i = 0; i < 6; ++i) {
-						SDL_Surface *s = SDL_CreateRGBSurface(SDL_SWSURFACE, actualWidth, actualHeight, targetPixelFormat->BitsPerPixel,
-							targetPixelFormat->Rmask, targetPixelFormat->Gmask, targetPixelFormat->Bmask, targetPixelFormat->Amask);
+						SDL_Surface *s = SDL_CreateRGBSurface(SDL_SWSURFACE, actualWidth, actualHeight, bpp, rmask, gmask, bmask, amask);
 						SDL_SetSurfaceBlendMode(m_cubemap[i].Get(), SDL_BLENDMODE_NONE);
 						SDL_BlitSurface(m_cubemap[i].Get(), 0, s, 0);
 						m_cubemap[i] = SDLSurfacePtr::WrapNew(s);
