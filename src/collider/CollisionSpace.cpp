@@ -432,3 +432,12 @@ void CollisionSpace::Collide(void (*callback)(CollisionContact*))
 		CollideGeoms(*i, mailboxMin, callback);
 	}
 }
+
+bool CollisionSpace::CheckData()
+{
+	for (auto geom : m_geoms)
+		if (!geom->GetUserData()) return false;
+	for (auto geom : m_staticGeoms)
+		if (!geom->GetUserData()) return false;
+	return true;
+}

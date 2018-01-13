@@ -931,6 +931,21 @@ void Space::CollideFrame(Frame *f)
 		CollideFrame(kid);
 }
 
+static bool CheckFrameGeoms(Frame *f)
+{
+	if (!f->GetCollisionSpace()->CheckData()) return false;
+	for (Frame *kid : f->GetChildren())
+		if (!CheckFrameGeoms(kid)) return false;
+	return true;
+}
+
+void Space::CheckGeoms(const char *src)
+{
+	Frame *f = m_rootFrame.get();
+	if (!CheckFrameGeoms(f))
+		Warning("Bad geom detected after: %s\n", src);
+}
+
 void Space::TimeStep(float step)
 {
 	PROFILE_SCOPED()

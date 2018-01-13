@@ -1322,8 +1322,13 @@ void Pi::Start(const int& startPlanet)
 
 	delete Pi::intro; Pi::intro = 0;
 
+	Pi::game->GetSpace()->CheckGeoms("Game created");
+
 	InitGame();
 	StartGame();
+
+	Pi::game->GetSpace()->CheckGeoms("onGameStart events");
+
 	MainLoop();
 }
 

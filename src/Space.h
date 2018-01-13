@@ -79,6 +79,7 @@ public:
 		m_bodyNearFinder.GetBodiesMaybeNear(pos, dist, bodies);
 	}
 
+	void CheckGeoms(const char *src);
 
 private:
 	void GenSectorCache(RefCountedPtr<Galaxy> galaxy, const SystemPath* here);
